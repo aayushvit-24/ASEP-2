@@ -46,30 +46,56 @@
       "Monkey": [18.4515, 73.8648]
     };
 
-    for (const [name, coords] of Object.entries(animals)) {
-      L.marker(coords).addTo(map).bindPopup(`<b>${name}</b>`);
-    }
-
     let userMarker = null;
     let userCoords = null;
 
-    map.locate({setView: true, maxZoom: 18, watch: true});
+    const animalMarkers = {};
 
-    function onLocationFound(e) {
-      userCoords = e.latlng;
+    for (const [name, coords] of Object.entries(animals)) {
+      const marker = L.marker(coords).addTo(map).bindPopup(`<b>${name}</b><br><button onclick=\"handleAnimalClick('${name}')\">Get Directions</button>`);
+      animalMarkers[name] = marker;
+    }
+
+    function showUserLocation(latlng) {
+      userCoords = latlng;
       if (userMarker) {
-        userMarker.setLatLng(e.latlng);
+        userMarker.setLatLng(latlng);
       } else {
-        userMarker = L.marker(e.latlng, {icon: L.icon({iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', iconSize: [25, 41], iconAnchor: [12, 41]})}).addTo(map).bindPopup("You are here").openPopup();
+        userMarker = L.marker(latlng, {
+          icon: L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [0, -30]
+          })
+        }).addTo(map).bindPopup("You are here").openPopup();
+        map.setView(latlng, 17);
       }
     }
 
-    function onLocationError(e) {
-      alert("Unable to retrieve your location. Please enable location services.");
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latlng = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          console.log("User location:", latlng);
+          showUserLocation(latlng);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          alert("Unable to retrieve your location. Please allow location access.");
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
     }
-
-    map.on('locationfound', onLocationFound);
-    map.on('locationerror', onLocationError);
 
     async function getShortestPath(destination) {
       const response = await fetch('http://localhost:5000/shortest-path', {
@@ -87,6 +113,11 @@
         map.setView(animals[selected], 18);
         getShortestPath(selected);
       }
+    }
+
+    function handleAnimalClick(animalName) {
+      document.getElementById("animalSelect").value = animalName;
+      goToAnimal();
     }
   </script>
 </body>
