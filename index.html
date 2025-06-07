@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Katraj Zoo Live Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    #map { height: 100vh; width: 100vw; }
+    .leaflet-control-zoom { display: none !important; }
+  </style>
+</head>
+<body>
+  <div style="position:absolute; top:10px; left:10px; z-index:1000; background:white; padding:10px; border-radius:8px;">
+    <label for="animalSelect">Go to Animal:</label>
+    <select id="animalSelect">
+      <option value="">--Select--</option>
+      <option value="Lion">Lion</option>
+      <option value="Elephant">Elephant</option>
+      <option value="Peacock">Peacock</option>
+      <option value="White Tiger">White Tiger</option>
+      <option value="Snake">Snake</option>
+      <option value="Monkey">Monkey</option>
+    </select>
+    <button onclick="goToAnimal()">Go</button>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map', { zoomControl: false }).setView([18.4515, 73.8655], 17);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const animals = {
+      "Lion": [18.453692734295167, 73.85899591533487],
+      "Elephant": [18.4519, 73.8672],
+      "Peacock": [18.4523, 73.8661],
+      "White Tiger": [18.4520, 73.8653],
+      "Snake": [18.4507, 73.8659],
+      "Monkey": [18.4515, 73.8648]
+    };
+
+    for (const [name, coords] of Object.entries(animals)) {
+      L.marker(coords).addTo(map).bindPopup(`<b>${name}</b>`);
+    }
+
+    let userMarker = null;
+    let userCoords = null;
+
+    map.locate({setView: true, maxZoom: 18, watch: true});
+
+    function onLocationFound(e) {
+      userCoords = e.latlng;
+      if (userMarker) {
+        userMarker.setLatLng(e.latlng);
+      } else {
+        userMarker = L.marker(e.latlng, {icon: L.icon({iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', iconSize: [25, 41], iconAnchor: [12, 41]})}).addTo(map).bindPopup("You are here").openPopup();
+      }
+    }
+
+    function onLocationError(e) {
+      alert("Unable to retrieve your location. Please enable location services.");
+    }
+
+    map.on('locationfound', onLocationFound);
+    map.on('locationerror', onLocationError);
+
+    async function getShortestPath(destination) {
+      const response = await fetch('http://localhost:5000/shortest-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: "User", end: destination })
+      });
+      const result = await response.json();
+      alert("Shortest path:\n" + result.path.join(" → ") + `\nDistance: ${result.distance} m`);
+    }
+
+    function goToAnimal() {
+      const selected = document.getElementById('animalSelect').value;
+      if (selected && animals[selected]) {
+        map.setView(animals[selected], 18);
+        getShortestPath(selected);
+      }
+    }
+  </script>
+</body>
+</html>
