@@ -4,25 +4,63 @@
   <title>Katraj Zoo Live Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body { background: #f0f4f7; }
     #map { height: 100vh; width: 100vw; }
     .leaflet-control-zoom { display: none !important; }
+    .animal-label {
+      font-weight: 600;
+      background: transparent;
+      padding: 0;
+      border: none;
+      font-size: 14px;
+      color: #000;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    }
+    .controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .controls label {
+      font-weight: bold;
+    }
+    .controls select, .controls button {
+      padding: 6px 10px;
+      margin-top: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .controls button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .controls button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
-  <div style="position:absolute; top:10px; left:10px; z-index:1000; background:white; padding:10px; border-radius:8px;">
-    <label for="animalSelect">Go to Animal:</label>
+  <div class="controls">
+    <label for="animalSelect">Go to Animal:</label><br>
     <select id="animalSelect">
       <option value="">--Select--</option>
-      <option value="Lion">Lion</option>
-      <option value="Elephant">Elephant</option>
-      <option value="Peacock">Peacock</option>
-      <option value="White Tiger">White Tiger</option>
-      <option value="Snake">Snake</option>
-      <option value="Monkey">Monkey</option>
     </select>
     <button onclick="goToAnimal()">Go</button>
   </div>
@@ -38,28 +76,50 @@
     }).addTo(map);
 
     const animals = {
-      "Lion": [18.4544518, 73.8637011],
-      "Elephant": [18.4538641, 73.8632311],
       "Antilog": [18.4513869, 73.8623289],
       "Deer": [18.4491094, 73.8603943],
-      "Tiger": [18.4497883, 73.8591234],
+      "Elephant": [18.4538641, 73.8632311],
+      "Jungle cat": [18.4532853, 73.8592849],
       "Leopard": [18.4501952, 73.8587092],
-      "Sloth bear": [18.4509190, 73.8586884],
+      "Lion": [18.4544518, 73.8637011],
+      "Monitor lizard": [18.4553518, 73.8597845],
+      "Monkey": [18.4546258, 73.859537],
       "Peacock": [18.4550907, 73.8606874],
-      "White Tiger": [18.4490385, 73.8598069],
-      "Snake": [18.4552803, 73.8595568],
-      "Monkey": [18.4546258, 73.859537]
+      "Python": [18.4557459, 73.8593885],
+      "Sloth bear": [18.4509190, 73.8586884],
+      "Snakes": [18.4552803, 73.8595568],
+      "Tiger": [18.4497883, 73.8591234],
+      "White Tiger": [18.4490385, 73.8598069]
     };
+
+    // Populate dropdown alphabetically
+    const animalSelect = document.getElementById("animalSelect");
+    Object.keys(animals).sort().forEach(animal => {
+      const option = document.createElement("option");
+      option.value = animal;
+      option.textContent = animal;
+      animalSelect.appendChild(option);
+    });
+
+    const animalMarkers = {};
+    for (const [name, coords] of Object.entries(animals)) {
+      const marker = L.marker(coords).addTo(map)
+        .bindPopup(`<b>${name}</b><br><button onclick=\"handleAnimalClick('${name}')\">Get Directions</button>`);
+
+      const label = L.marker(coords, {
+        icon: L.divIcon({
+          className: 'animal-label',
+          html: name,
+          iconAnchor: [30, -10]
+        }),
+        interactive: false
+      }).addTo(map);
+
+      animalMarkers[name] = marker;
+    }
 
     let userMarker = null;
     let userCoords = null;
-
-    const animalMarkers = {};
-
-    for (const [name, coords] of Object.entries(animals)) {
-      const marker = L.marker(coords).addTo(map).bindPopup(`<b>${name}</b><br><button onclick=\"handleAnimalClick('${name}')\">Get Directions</button>`);
-      animalMarkers[name] = marker;
-    }
 
     function showUserLocation(latlng) {
       userCoords = latlng;
