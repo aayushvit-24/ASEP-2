@@ -122,6 +122,7 @@
     let userMarker = null;
     let userCoords = null;
     let routingControl = null;
+    let currentAnimal = null;
 
     function showUserLocation(latlng) {
       userCoords = latlng;
@@ -136,7 +137,9 @@
             popupAnchor: [0, -30]
           })
         }).addTo(map).bindPopup("You are here").openPopup();
-        map.setView(latlng, 17);
+      }
+      if (currentAnimal) {
+        getShortestPath(currentAnimal);
       }
     }
 
@@ -169,6 +172,7 @@
     startLiveLocationTracking();
 
     function getShortestPath(destination) {
+      currentAnimal = destination;
       if (!userCoords) {
         alert("User location not available yet.");
         return;
