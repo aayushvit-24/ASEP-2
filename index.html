@@ -5,7 +5,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -92,7 +94,6 @@
       "White Tiger": [18.4490385, 73.8598069]
     };
 
-    // Populate dropdown alphabetically
     const animalSelect = document.getElementById("animalSelect");
     Object.keys(animals).sort().forEach(animal => {
       const option = document.createElement("option");
@@ -120,6 +121,7 @@
 
     let userMarker = null;
     let userCoords = null;
+    let routingControl = null;
 
     function showUserLocation(latlng) {
       userCoords = latlng;
@@ -138,38 +140,57 @@
       }
     }
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const latlng = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          console.log("User location:", latlng);
-          showUserLocation(latlng);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          alert("Unable to retrieve your location. Please allow location access.");
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
-      alert("Geolocation is not supported by your browser.");
+    function startLiveLocationTracking() {
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const latlng = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            console.log("Live user location:", latlng);
+            showUserLocation(latlng);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            alert("Unable to retrieve your location. Please allow location access.");
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by your browser.");
+      }
     }
 
-    async function getShortestPath(destination) {
-      const response = await fetch('http://localhost:5000/shortest-path', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start: "User", end: destination })
-      });
-      const result = await response.json();
-      alert("Shortest path:\n" + result.path.join(" → ") + `\nDistance: ${result.distance} m`);
+    startLiveLocationTracking();
+
+    function getShortestPath(destination) {
+      if (!userCoords) {
+        alert("User location not available yet.");
+        return;
+      }
+
+      if (routingControl) {
+        map.removeControl(routingControl);
+      }
+
+      routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(userCoords.lat, userCoords.lng),
+          L.latLng(...animals[destination])
+        ],
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
+        lineOptions: {
+          styles: [{ color: '#007bff', opacity: 0.8, weight: 5 }]
+        },
+        createMarker: () => null
+      }).addTo(map);
     }
 
     function goToAnimal() {
