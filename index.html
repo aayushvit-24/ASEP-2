@@ -77,6 +77,29 @@
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
+    const zooPath = [
+      [18.454386, 73.859095], [18.454276, 73.859579], [18.454055, 73.859655],
+      [18.453843, 73.859664], [18.453543, 73.859607], [18.453339, 73.859525],
+      [18.453023, 73.85938], [18.452695, 73.859206], [18.452376, 73.859028],
+      [18.45219, 73.858932], [18.451855, 73.858891], [18.451483, 73.858866],
+      [18.451113, 73.858841], [18.450832, 73.858838], [18.450676, 73.858851],
+      [18.450386, 73.859133], [18.450218, 73.859354], [18.450074, 73.859539],
+      [18.450003, 73.859626], [18.449862, 73.859722], [18.449677, 73.859855],
+      [18.449401, 73.860057], [18.449235, 73.859921], [18.449091, 73.859795],
+      [18.449027, 73.860015], [18.449018, 73.860262], [18.449074, 73.860574],
+      [18.449171, 73.861017], [18.449303, 73.861554], [18.449514, 73.862166],
+      [18.449921, 73.862192], [18.450234, 73.862203], [18.450573, 73.862244],
+      [18.450919, 73.86229], [18.451312, 73.862371], [18.451807, 73.862486],
+      [18.452246, 73.862648], [18.452436, 73.862741], [18.452697, 73.862968],
+      [18.453039, 73.863168], [18.453322, 73.863243], [18.453622, 73.863195]
+    ];
+
+    const pathPolyline = L.polyline(zooPath, {
+      color: 'green',
+      weight: 5,
+      opacity: 0.7
+    }).addTo(map);
+
     const animals = {
       "Antilog": [18.4513869, 73.8623289],
       "Deer": [18.4491094, 73.8603943],
@@ -124,8 +147,11 @@
     let routingControl = null;
     let currentAnimal = null;
 
-    function showUserLocation(latlng) {
+    function showUserLocation(latlng, accuracy) {
+      if (accuracy > 30) return;
+
       userCoords = latlng;
+
       if (userMarker) {
         userMarker.setLatLng(latlng);
       } else {
@@ -138,21 +164,18 @@
           })
         }).addTo(map).bindPopup("You are here").openPopup();
       }
-      if (currentAnimal) {
-        getShortestPath(currentAnimal);
-      }
+
+      if (currentAnimal) getShortestPath(currentAnimal);
     }
 
     function startLiveLocationTracking() {
       if (navigator.geolocation) {
         navigator.geolocation.watchPosition(
           (position) => {
-            const latlng = {
+            showUserLocation({
               lat: position.coords.latitude,
               lng: position.coords.longitude
-            };
-            console.log("Live user location:", latlng);
-            showUserLocation(latlng);
+            }, position.coords.accuracy);
           },
           (error) => {
             console.error("Geolocation error:", error);
@@ -187,6 +210,7 @@
           L.latLng(userCoords.lat, userCoords.lng),
           L.latLng(...animals[destination])
         ],
+        router: L.Routing.osrmv1({ profile: 'foot' }),
         routeWhileDragging: false,
         show: false,
         addWaypoints: false,
