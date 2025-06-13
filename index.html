@@ -148,25 +148,44 @@
     let currentAnimal = null;
 
     function showUserLocation(latlng, accuracy) {
-      if (accuracy > 30) return;
+  console.log("User location received:", latlng, "Accuracy:", accuracy);
 
-      userCoords = latlng;
+  if (accuracy > 100) {
+    alert("Your location accuracy is too low (>100m). Try moving to an open area or check GPS settings.");
+    return;
+  }
 
-      if (userMarker) {
-        userMarker.setLatLng(latlng);
-      } else {
-        userMarker = L.marker(latlng, {
-          icon: L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [0, -30]
-          })
-        }).addTo(map).bindPopup("You are here").openPopup();
-      }
+  userCoords = latlng;
 
-      if (currentAnimal) getShortestPath(currentAnimal);
-    }
+  // Update or create user marker
+  if (userMarker) {
+    userMarker.setLatLng(latlng);
+  } else {
+    userMarker = L.marker(latlng, {
+      icon: L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/64/64113.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [0, -30]
+      })
+    }).addTo(map).bindPopup(`You are here (Accuracy: ${Math.round(accuracy)}m)`).openPopup();
+  }
+
+  // Draw or update accuracy circle
+  if (window.userAccuracyCircle) {
+    userAccuracyCircle.setLatLng(latlng).setRadius(accuracy);
+  } else {
+    window.userAccuracyCircle = L.circle(latlng, {
+      radius: accuracy,
+      color: 'blue',
+      fillColor: '#cce5ff',
+      fillOpacity: 0.2
+    }).addTo(map);
+  }
+
+  if (currentAnimal) getShortestPath(currentAnimal);
+}
+
 
     function startLiveLocationTracking() {
       if (navigator.geolocation) {
